@@ -1,9 +1,11 @@
-"""Features for Boston 311.
+"""
+Features for Boston 311, intake only.
 
 Run: python src/features.py
 Input:  data/raw/boston311_2025.csv
 Output: prints train/test sizes and overdue rates.
-        Saves splits to data/processed/ (git-ignored, not committed).
+        Splits are built in memory by baselines.py, not saved as CSVs,
+        because a 1,700-column CSV is too slow to write.
 
 Time split: train Jan-Sep 2025, test Oct-Dec 2025.
 Target: is_overdue = 1 if on_time is OVERDUE, else 0.
@@ -40,6 +42,15 @@ def build_features(path=RAW):
     train = closed[closed["open_dt"] < "2025-10-01"].copy()
     test = closed[closed["open_dt"] >= "2025-10-01"].copy()
 
+    # Group rare categories as "Other": a category seen fewer than
+    # 500 times in train becomes one shared column, instead of
+    # hundreds of near-empty columns that make logistic regression slow.
+    for col in CAT:
+        keep = train[col].value_counts()
+        keep = keep[keep >= 500].index
+        train[col] = train[col].where(train[col].isin(keep), "Other")
+        test[col] = test[col].where(test[col].isin(keep), "Other")
+
     x_train = pd.get_dummies(train[CAT + NUM])
     x_test = pd.get_dummies(test[CAT + NUM])
     x_test = x_test.reindex(columns=x_train.columns, fill_value=0)
@@ -47,15 +58,10 @@ def build_features(path=RAW):
 
 
 def main():
-    os.makedirs(PROCESSED, exist_ok=True)
     x_train, x_test, y_train, y_test = build_features()
     print(f"Train: {len(x_train):,} rows, overdue {y_train.mean():.4f}")
     print(f"Test:  {len(x_test):,} rows, overdue {y_test.mean():.4f}")
     print(f"Features: {x_train.shape[1]}")
-    x_train.to_csv(os.path.join(PROCESSED, "x_train.csv"), index=False)
-    x_test.to_csv(os.path.join(PROCESSED, "x_test.csv"), index=False)
-    y_train.to_csv(os.path.join(PROCESSED, "y_train.csv"), index=False)
-    y_test.to_csv(os.path.join(PROCESSED, "y_test.csv"), index=False)
 
 
 if __name__ == "__main__":
