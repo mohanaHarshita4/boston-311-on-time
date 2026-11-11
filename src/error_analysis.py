@@ -35,7 +35,8 @@ REPORTS = os.path.join(ROOT, "reports")
 
 
 def test_metadata(y_test):
-    """Return case_title / neighborhood for the test rows.
+    """
+    Return case_title / neighborhood for the test rows.
 
     build_features returns only the feature matrix and the target,
     so the labels are reloaded here from the raw file using exactly

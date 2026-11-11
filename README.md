@@ -86,6 +86,19 @@ Reading this plainly: majority gets 87.46 percent accuracy by never predicting o
 
 Detailed results are in reports/baseline_results.md, reports/svm_results.md, and reports/mlp_tuning.md.
 
+## Cross-validation
+
+The main result comes from one split, train Jan to Sep 2025 and test Oct to Dec 2025, so I checked the same logistic model on earlier months too, with expanding windows inside Jan to Sep only. Each fold trains on the past and is checked on the months right after it, and the Oct to Dec test set is never used here.
+
+| Fold | Check requests | Overdue rate | Accuracy | F1 (overdue) | Overdue recall |
+|---|---|---|---|---|---|
+| Train Jan-Feb, check Mar-Apr | 29,275 | 0.1482 | 0.8813 | 0.5203 | 0.4343 |
+| Train Jan-Apr, check May-Jun | 32,199 | 0.1190 | 0.9157 | 0.5658 | 0.4614 |
+| Train Jan-Jun, check Jul-Sep | 56,237 | 0.1049 | 0.9271 | 0.5550 | 0.4337 |
+| Mean |  |  |  | 0.5470 | 0.4431 |
+
+For comparison, the single Oct to Dec test result was accuracy 0.9104, F1 0.5676, overdue recall 0.4687. The fold F1s sit close to that, from 0.5203 to 0.5658, with a mean of 0.5470, and the recalls sit close too, from 0.4337 to 0.4614, with a mean of 0.4431. The first fold is a bit lower, which makes sense, it only trains on two months, Jan and Feb. The result is not just one lucky set of months. Full table and figure are in reports/cross_validation.md and reports/figures/cv_folds.png.
+
 ## Errors, and what they taught me
 
 The most costly error here is a missed overdue request, meaning it actually went overdue but the model predicted on time. A missed request does not get flagged early, which defeats the purpose of the project.
