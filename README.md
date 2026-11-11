@@ -2,7 +2,6 @@
 
 I built this project because I wanted to work with real city data and answer a question that actually matters to the people who use that data. When a Boston resident reports a pothole, a broken streetlight, or missed trash pickup, the city sets a target date for closing it. Some requests close on time and some do not, and nobody knows at the start which ones will get stuck. I wanted to see if I could predict that at intake, from information that is already known when the request comes in, so a likely late request could be flagged early instead of discovered late. That is why I call it Early Flag. The point is not to count late requests after they are already late. The point is to flag them before they get there.
 
-
 ## The question
 
 Can I predict, at the time a request is opened, whether it will close overdue?
@@ -68,7 +67,9 @@ Accuracy alone is misleading here. Only about 12.5 percent of the test set is ov
 1. Majority baseline, always predict on time. This is not a real model. It is the bar every other model has to beat.
 2. Logistic regression, scikit-learn. It learns a weight for each feature, adds them up, and turns the sum into a probability of going overdue. If that probability is above 0.5, it predicts overdue.
 3. Linear SVM, scikit-learn, LinearSVC. It tries to find a straight boundary that separates overdue from on time requests as cleanly as possible. I used a linear SVM, not an RBF kernel SVM, because an RBF kernel on about 149,000 training rows is far too slow. Linear keeps the comparison with logistic fair, because both are linear models on the same features.
-4. Small MLP in PyTorch. This is the next model to train. It can learn combinations, like type plus neighbourhood plus target window together, in a way a linear model cannot. I have not trained it yet, so I am not claiming results for it here.
+4. Small MLP in PyTorch. It can learn combinations, like type plus neighbourhood plus target window together, in a way a linear model cannot. I tuned it with three small settings, five epochs each: 64 to 32 with learning rate 0.001 and no dropout, 128 to 64 with dropout 0.2, and 64 to 32 with learning rate 0.0005 and dropout 0.2. The plain first setting won on F1, so dropout and the bigger layer did not help here.
+
+5. Cross-validation, expanding windows inside the training months. The main result comes from one split, so I check the same logistic model on earlier months too: train January to February and check March to April, then train January to April and check May to June, then train January to June and check July to September. Each fold trains on the past and is checked on the months right after it, the same way the real test works, and the October to December test set is never used here, so it stays a fresh final check. The code is in src/cross_validation.py, results in reports/cross_validation.md, and the figure in reports/figures/cv_folds.png.
 
 ## Results
 
@@ -79,16 +80,17 @@ Test set: October to December 2025, 38,869 requests, 12.54 percent overdue.
 | Majority (always ONTIME) | 0.8746 | 0.0000 | 0.0000 |
 | Logistic regression | 0.9104 | 0.5676 | 0.4687 |
 | SVM (linear) | 0.9102 | 0.5648 | 0.4644 |
+| MLP (PyTorch, 64-32, best tuning setting) | 0.8533 | 0.5912 | 0.8457 |
 
-Reading this plainly: majority gets 87.46 percent accuracy by never predicting overdue, and it catches none of the overdue requests. Logistic regression beats it on accuracy and catches about 47 out of every 100 overdue requests, with an F1 of 0.5676. Linear SVM is essentially tied with logistic, slightly behind on all three measures. The differences are small, 0.0002 on accuracy, 0.0028 on F1, and 0.0043 on recall, which makes sense because both are linear models on the same features.
+Reading this plainly: majority gets 87.46 percent accuracy by never predicting overdue, and it catches none of the overdue requests. Logistic regression beats it on accuracy and catches about 47 out of every 100 overdue requests, with an F1 of 0.5676. Linear SVM is essentially tied with logistic, slightly behind on all three measures. The differences are small, 0.0002 on accuracy, 0.0028 on F1, and 0.0043 on recall, which makes sense because both are linear models on the same features. The MLP is different. Its best setting, 64 to 32 with learning rate 0.001 and no dropout, catches about 85 out of every 100 overdue requests, with an F1 of 0.5912, the best F1 of the three models. That gain comes with a cost: accuracy falls to 0.8533, because the MLP flags more on time requests as overdue too. For this project that trade is worth naming, because the point is to flag likely late requests early, not to keep accuracy high by missing them. The other two tuning settings were close on F1, 0.5779 for 128 to 64 with dropout 0.2, and 0.5891 for 64 to 32 with learning rate 0.0005 and dropout 0.2, so tuning helped a little, but it did not change the story.
 
-Detailed results are in reports/baseline_results.md and reports/svm_results.md.
+Detailed results are in reports/baseline_results.md, reports/svm_results.md, and reports/mlp_tuning.md.
 
 ## Errors, and what they taught me
 
 The most costly error here is a missed overdue request, meaning it actually went overdue but the model predicted on time. A missed request does not get flagged early, which defeats the purpose of the project.
 
-src/error_analysis.py retrains the logistic baseline and breaks missed requests down by request type and by neighbourhood. It only shows groups with at least 20 overdue requests in the test set, and it sorts by number missed, not by recall alone. A group with 2 overdue requests, both missed, would show zero recall but it is only 2 requests. A group with hundreds of missed requests is a bigger problem, even if its recall looks higher. Results are in reports/error_analysis.md after running the script.
+src/error_analysis.py retrains the logistic baseline and breaks missed requests down by request type and by neighbourhood. It only shows groups with at least 20 overdue requests in the test set, and it sorts by number missed, not by recall alone. A group with 2 overdue requests, both missed, would show zero recall but it is only 2 requests. A group with hundreds of missed requests is a bigger problem, even if its recall looks higher. On the test set, 4,875 requests actually went overdue and the model missed 2,590 of them, so it caught about 47 out of every 100. The misses were not spread evenly by type. Abandoned Vehicles, Parking Enforcement, and Traffic Signal requests were missed almost every time they went overdue, which tells me the model still cannot see what makes those types late. Neighbourhoods looked more even, with no single neighbourhood standing out the way those types did. The full tables are in reports/error_analysis.md.
 
 ## What I learned from building this
 
@@ -102,13 +104,15 @@ Most of the work was not in picking a fancy model. It was in getting the data ri
 4. Check the features: python src/features.py
 5. Run the baselines: python src/baselines.py
 6. Run the linear SVM: python src/svm.py
-7. Run the error check: python src/error_analysis.py
+7. Tune the MLP: python src/mlp.py
+8. Run the error check: python src/error_analysis.py
+9. Check the result across earlier months: python src/cross_validation.py
 
-Download data puts the 2024 and 2025 CSV files in data/raw. Exploration writes the summary and figures to reports. Features prints train and test sizes. Baselines, SVM, and error check each print a results table and write it to reports.
+Download data puts the 2024 and 2025 CSV files in data/raw. Exploration writes the summary and figures to reports. Features prints train and test sizes. Baselines, SVM, and error check each print a results table and write it to reports. MLP tuning prints a small table, one row per setting, and writes it to reports/mlp_tuning.md.
 
 ## Code
 
-The code lives in src. Download data is in download_data.py. Exploration is in eda.py. Features are in features.py. Majority and logistic are in baselines.py. Linear SVM is in svm.py. Error check is in error_analysis.py. Reports are in reports, with eda_summary.md, baseline_results.md, svm_results.md, error_analysis.md, and figures.
+The code lives in src. Download data is in download_data.py. Exploration is in eda.py. Features are in features.py. Majority and logistic are in baselines.py. Linear SVM is in svm.py. MLP tuning is in mlp.py. Error check is in error_analysis.py. Cross-validation is in cross_validation.py. Reports are in reports, with eda_summary.md, baseline_results.md, svm_results.md, mlp_tuning.md, error_analysis.md, cross_validation.md, and figures.
 
 ## Author
 
