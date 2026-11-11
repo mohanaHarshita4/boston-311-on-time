@@ -1,0 +1,13 @@
+case_title,requests,overdue,overdue_rate
+Improper Storage of Trash (Barrels),20007,43,0.002149247763282851
+Requests for Street Cleaning,19135,858,0.044839299712568594
+CE Collection,18560,121,0.006519396551724138
+Parking Enforcement,15013,722,0.048091653899953374
+Needle Pickup,11636,0,0.0
+Poor Conditions of Property,8835,34,0.003848330503678551
+Pick up Dead Animal,8240,228,0.02766990291262136
+Unshoveled Sidewalk,6383,74,0.011593294689017703
+Request for Pothole Repair,5931,2582,0.4353397403473276
+Rodent Activity,5159,15,0.002907540220973057
+Sign Repair,4713,3295,0.6991300657755145
+Recycling Cart Return,4511,4134,0.9164265129682997

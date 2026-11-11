@@ -105,6 +105,10 @@ The most costly error here is a missed overdue request, meaning it actually went
 
 src/error_analysis.py retrains the logistic baseline and breaks missed requests down by request type and by neighbourhood. It only shows groups with at least 20 overdue requests in the test set, and it sorts by number missed, not by recall alone. A group with 2 overdue requests, both missed, would show zero recall but it is only 2 requests. A group with hundreds of missed requests is a bigger problem, even if its recall looks higher. On the test set, 4,875 requests actually went overdue and the model missed 2,590 of them, so it caught about 47 out of every 100. The misses were not spread evenly by type. Abandoned Vehicles, Parking Enforcement, and Traffic Signal requests were missed almost every time they went overdue, which tells me the model still cannot see what makes those types late. Neighbourhoods looked more even, with no single neighbourhood standing out the way those types did. The full tables are in reports/error_analysis.md.
 
+## Dashboard
+
+I also built a short Tableau dashboard from the same results, using only the four aggregated tables in reports/tableau, not the raw data. It shows the overall on time share, overdue rate by request type, missed overdue requests by neighbourhood, and the monthly trend for 2025. You can see it here: https://public.tableau.com/app/profile/mohana.r7889/viz/EarlyFlag/Dashboard1?publish=yes
+
 ## What I learned from building this
 
 Most of the work was not in picking a fancy model. It was in getting the data right, in checking dates, in refusing to leak the answer, and in splitting by time so the test actually meant something. The first logistic fit was too slow because of too many rare columns, and the first file I wrote for features had an indentation problem that broke the whole function. I fixed both by simplifying, grouping rare values, building splits in memory, and replacing the whole file with a checked version instead of patching it line by line. Those fixes are part of the work, and I would rather say that plainly than pretend the first version worked.
@@ -120,12 +124,13 @@ Most of the work was not in picking a fancy model. It was in getting the data ri
 7. Tune the MLP: python src/mlp.py
 8. Run the error check: python src/error_analysis.py
 9. Check the result across earlier months: python src/cross_validation.py
+10. Build the Tableau tables: python src/tableau_tables.py
 
-Download data puts the 2024 and 2025 CSV files in data/raw. Exploration writes the summary and figures to reports. Features prints train and test sizes. Baselines, SVM, and error check each print a results table and write it to reports. MLP tuning prints a small table, one row per setting, and writes it to reports/mlp_tuning.md.
+Download data puts the 2024 and 2025 CSV files in data/raw. Exploration writes the summary and figures to reports. Features prints train and test sizes. Baselines, SVM, and error check each print a results table and write it to reports. MLP tuning prints a small table, one row per setting, and writes it to reports/mlp_tuning.md. Tableau tables writes four small CSVs to reports/tableau, aggregated counts only, never the raw rows.
 
 ## Code
 
-The code lives in src. Download data is in download_data.py. Exploration is in eda.py. Features are in features.py. Majority and logistic are in baselines.py. Linear SVM is in svm.py. MLP tuning is in mlp.py. Error check is in error_analysis.py. Cross-validation is in cross_validation.py. Reports are in reports, with eda_summary.md, baseline_results.md, svm_results.md, mlp_tuning.md, error_analysis.md, cross_validation.md, and figures.
+The code lives in src. Download data is in download_data.py. Exploration is in eda.py. Features are in features.py. Majority and logistic are in baselines.py. Linear SVM is in svm.py. MLP tuning is in mlp.py. Error check is in error_analysis.py. Cross-validation is in cross_validation.py. Tableau tables are in tableau_tables.py. Reports are in reports, with eda_summary.md, baseline_results.md, svm_results.md, mlp_tuning.md, error_analysis.md, cross_validation.md, and figures, plus tableau tables in reports/tableau.
 
 ## Author
 
